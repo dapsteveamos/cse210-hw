@@ -39,7 +39,7 @@ class Video
     {
         Comments.Add(comment);
     }
-
+// getcomment was what i used here
     public int GetCommentCount()
     {
         return Comments.Count;
