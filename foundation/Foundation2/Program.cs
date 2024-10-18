@@ -16,7 +16,7 @@ class Address
         this.state = state;
         this.country = country;
     }
-
+// jj
     public bool IsInUSA()
     {
         return country.ToLower() == "usa";
