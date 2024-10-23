@@ -1,6 +1,9 @@
+// Excedding requirement: This program implements a series of activities to promote relaxation, reflection, and positive thinking.
+// It includes Breathing, Listing, and Reflection activities, each with a unique prompt and guided process.
 using System;
 using System.Collections.Generic;
 using System.Threading;
+
 
 public class Program
 {
@@ -67,16 +70,16 @@ public class Activity
     {
         for (int i = 0; i < seconds; i++)
         {
-            Console.Write("/");
+            Console.Write("/"); 
             Thread.Sleep(250);
             Console.Write("\b");
-            Console.Write("-");
+            Console.Write("-"); 
             Thread.Sleep(250);
             Console.Write("\b");
-            Console.Write("\\");
+            Console.Write("\\"); 
             Thread.Sleep(250);
             Console.Write("\b");
-            Console.Write("|");
+            Console.Write("|"); 
             Thread.Sleep(250);
             Console.Write("\b");
         }
@@ -178,23 +181,21 @@ public class ReflectionActivity : Activity
         "Think of a time when you did something truly selfless."
     };
 
-    private List<string> _questions = new List<string>
+    public class ListingActivity : Activity
+{
+    private List<string> _prompts = new List<string>
     {
-        "Why was this experience meaningful to you?",
-        "Have you ever done anything like this before?",
-        "How did you get started?",
-        "How did you feel when it was complete?",
-        "What made this time different than other times?",
-        "What is your favorite thing about this experience?",
-        "What could you learn from this experience?",
-        "What did you learn about yourself?",
-        "How can you keep this experience in mind in the future?"
+        "Who are people that you appreciate?",
+        "What are personal strengths of yours?",
+        "Who are people that you have helped this week?",
+        "When have you felt the Holy Ghost this month?",
+        "Who are some of your personal heroes?"
     };
 
-    public ReflectionActivity()
+    public ListingActivity()
     {
-        SetActivityName("Reflection Activity");
-        SetDescription("This activity will help you reflect on times in your life when you have shown strength and resilience.");
+        SetActivityName("Listing Activity");
+        SetDescription("This activity will help you reflect on the good things in your life by having you list as many things as you can in a certain area.");
     }
 
     public override void PerformActivity()
@@ -202,26 +203,36 @@ public class ReflectionActivity : Activity
         // Show starting message
         ShowStartingMessage();
 
-        // Select a random reflection prompt from the list
+        // Select a random prompt from the list
         Random random = new Random();
         string prompt = _prompts[random.Next(_prompts.Count)];
         Console.WriteLine($"\nPrompt: {prompt}");
+        Console.WriteLine("You have a few seconds to start thinking...");
 
-        // Pause for a few seconds before showing questions
+        // Delay before starting to allow the user to prepare
         ShowSpinner(5);
 
-        // Start showing questions and allow time for reflection
+        // Start the user input phase
+        Console.WriteLine("\nStart listing as many things as you can:");
+        List<string> userResponses = new List<string>();
+
         DateTime endTime = DateTime.Now.AddSeconds(_duration);
         while (DateTime.Now < endTime)
         {
-            string question = _questions[random.Next(_questions.Count)];
-            Console.WriteLine($"\n{question}");
-
-            // Pause for reflection
-            ShowSpinner(5);
+            // Read user input and store responses
+            string response = Console.ReadLine();
+            if (!string.IsNullOrEmpty(response))
+            {
+                userResponses.Add(response);
+            }
         }
+
+        // Display how many items they listed
+        Console.WriteLine($"\nYou listed {userResponses.Count} items.");
 
         // Show ending message
         ShowEndingMessage();
     }
+}
+
 }
