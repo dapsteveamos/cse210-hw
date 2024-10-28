@@ -1,3 +1,6 @@
+// Exceeding requirement addedDeadline/Expiry Feature: An optional due date can now be assigned to each goal. If a due date is set, 
+// the program will notify the user when a goal is approaching its deadline (within 3 days) or has expired.
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -81,20 +84,28 @@ public class GoalManager
         Console.Write("Enter goal points: ");
         int points = int.Parse(Console.ReadLine());
 
+        Console.Write("Enter due date (yyyy-mm-dd) or press Enter to skip: ");
+        string dueDateInput = Console.ReadLine();
+        DateTime? dueDate = null;
+        if (!string.IsNullOrEmpty(dueDateInput))
+        {
+            dueDate = DateTime.Parse(dueDateInput);
+        }
+
         switch (choice)
         {
             case "1":
-                _goals.Add(new SimpleGoal(name, description, points));
+                _goals.Add(new SimpleGoal(name, description, points, dueDate));
                 break;
             case "2":
-                _goals.Add(new EternalGoal(name, description, points));
+                _goals.Add(new EternalGoal(name, description, points, dueDate));
                 break;
             case "3":
                 Console.Write("Enter target completions: ");
                 int target = int.Parse(Console.ReadLine());
                 Console.Write("Enter bonus points: ");
                 int bonus = int.Parse(Console.ReadLine());
-                _goals.Add(new ChecklistGoal(name, description, points, target, bonus));
+                _goals.Add(new ChecklistGoal(name, description, points, target, bonus, dueDate));
                 break;
             default:
                 Console.WriteLine("Invalid choice. Goal creation failed.");
@@ -148,22 +159,23 @@ public class GoalManager
                     string name = parts[1];
                     string description = parts[2];
                     int points = int.Parse(parts[3]);
+                    DateTime? dueDate = string.IsNullOrEmpty(parts[4]) ? (DateTime?)null : DateTime.Parse(parts[4]);
 
                     if (goalType == "SimpleGoal")
                     {
-                        bool isComplete = bool.Parse(parts[4]);
-                        _goals.Add(new SimpleGoal(name, description, points, isComplete));
+                        bool isComplete = bool.Parse(parts[5]);
+                        _goals.Add(new SimpleGoal(name, description, points, dueDate, isComplete));
                     }
                     else if (goalType == "EternalGoal")
                     {
-                        _goals.Add(new EternalGoal(name, description, points));
+                        _goals.Add(new EternalGoal(name, description, points, dueDate));
                     }
                     else if (goalType == "ChecklistGoal")
                     {
-                        int amountCompleted = int.Parse(parts[4]);
-                        int target = int.Parse(parts[5]);
-                        int bonus = int.Parse(parts[6]);
-                        _goals.Add(new ChecklistGoal(name, description, points, target, bonus, amountCompleted));
+                        int amountCompleted = int.Parse(parts[5]);
+                        int target = int.Parse(parts[6]);
+                        int bonus = int.Parse(parts[7]);
+                        _goals.Add(new ChecklistGoal(name, description, points, target, bonus, dueDate, amountCompleted));
                     }
                 }
             }
@@ -203,20 +215,43 @@ public abstract class Goal
     protected string _shortName;
     protected string _description;
     protected int _points;
+    protected DateTime? _dueDate;
 
-    public Goal(string name, string description, int points)
+    public Goal(string name, string description, int points, DateTime? dueDate = null)
     {
         _shortName = name;
         _description = description;
         _points = points;
+        _dueDate = dueDate;
     }
 
     public abstract void RecordEvent();
     public abstract bool IsComplete();
     public abstract string GetStringRepresentation();
+
+    // Set to protected so derived classes can access it
+    protected string GetDeadlineAlert()
+    {
+        if (_dueDate.HasValue)
+        {
+            int daysRemaining = (int)(_dueDate.Value - DateTime.Now).TotalDays;
+
+            if (daysRemaining < 0)
+            {
+                return " (Expired)";
+            }
+            else if (daysRemaining <= 3)
+            {
+                return $" (Due in {daysRemaining} days)";
+            }
+        }
+        return "";
+    }
+
     public virtual string GetDetailsString()
     {
-        return $"{(IsComplete() ? "[X]" : "[ ]")} {_shortName} - {_description} : {_points} points";
+        string deadlineAlert = GetDeadlineAlert();
+        return $"{(IsComplete() ? "[X]" : "[ ]")} {_shortName} - {_description} : {_points} points {deadlineAlert}";
     }
 
     public int Points => _points;
@@ -226,8 +261,8 @@ public class SimpleGoal : Goal
 {
     private bool _isComplete;
 
-    public SimpleGoal(string name, string description, int points, bool isComplete = false)
-        : base(name, description, points)
+    public SimpleGoal(string name, string description, int points, DateTime? dueDate = null, bool isComplete = false)
+        : base(name, description, points, dueDate)
     {
         _isComplete = isComplete;
     }
@@ -252,14 +287,14 @@ public class SimpleGoal : Goal
 
     public override string GetStringRepresentation()
     {
-        return $"SimpleGoal|{_shortName}|{_description}|{_points}|{_isComplete}";
+        return $"SimpleGoal|{_shortName}|{_description}|{_points}|{_dueDate?.ToString("yyyy-MM-dd")}|{_isComplete}";
     }
 }
 
 public class EternalGoal : Goal
 {
-    public EternalGoal(string name, string description, int points)
-        : base(name, description, points)
+    public EternalGoal(string name, string description, int points, DateTime? dueDate = null)
+        : base(name, description, points, dueDate)
     {
     }
 
@@ -275,7 +310,7 @@ public class EternalGoal : Goal
 
     public override string GetStringRepresentation()
     {
-        return $"EternalGoal|{_shortName}|{_description}|{_points}";
+        return $"EternalGoal|{_shortName}|{_description}|{_points}|{_dueDate?.ToString("yyyy-MM-dd")}";
     }
 }
 
@@ -285,8 +320,8 @@ public class ChecklistGoal : Goal
     private int _target;
     private int _bonus;
 
-    public ChecklistGoal(string name, string description, int points, int target, int bonus, int amountCompleted = 0)
-        : base(name, description, points)
+    public ChecklistGoal(string name, string description, int points, int target, int bonus, DateTime? dueDate = null, int amountCompleted = 0)
+        : base(name, description, points, dueDate)
     {
         _amountCompleted = amountCompleted;
         _target = target;
@@ -312,11 +347,12 @@ public class ChecklistGoal : Goal
 
     public override string GetDetailsString()
     {
-        return $"{(IsComplete() ? "[X]" : "[ ]")} {_shortName} - {_description} : Completed {_amountCompleted}/{_target}, {_points} points, Bonus: {_bonus}";
+        string deadlineAlert = GetDeadlineAlert();
+        return $"{(IsComplete() ? "[X]" : "[ ]")} {_shortName} - {_description} : Completed {_amountCompleted}/{_target}, {_points} points, Bonus: {_bonus} {deadlineAlert}";
     }
 
     public override string GetStringRepresentation()
     {
-        return $"ChecklistGoal|{_shortName}|{_description}|{_points}|{_amountCompleted}|{_target}|{_bonus}";
+        return $"ChecklistGoal|{_shortName}|{_description}|{_points}|{_dueDate?.ToString("yyyy-MM-dd")}|{_amountCompleted}|{_target}|{_bonus}";
     }
 }
